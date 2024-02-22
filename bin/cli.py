@@ -28,7 +28,7 @@ def train(
     ),
     learning_rate: float = typer.Option(
         0.01, "-l", "--learning-rate", help="Learning rate for the model."
-    ),
+    )
 ):
     """Run the training algorithm."""
     repo = git.Repo(search_parent_directories=True)
@@ -67,21 +67,28 @@ def infer(
     label: int = typer.Option(
         6, "-l", "--label", help="Label of image to show to the model"
     ),
+    flip: bool = typer.Option(
+        False, "-f", "--flip", help="Flip the image horizontally AND vertically."
+    )
 ):
     """Run the inference code"""
     params = load_params(run_path)
-    model = torch.load(run_path / "model.pt")
+    model = torch.load(run_path / "model.pth")
     model.to("cpu")
-    image = _select_test_image(label)
+    image = _select_test_image(label, flip)
     run_infer(params, model, image, label)
 
 
-def _select_test_image(label):
+def _select_test_image(label, do_flip):
     # TODO `ts` is a list of transformations that will be applied to the loaded
     # image. This works... but in order to add a transformation, or change one,
     # we now have to come and edit the code... which sucks. What if we could
     # configure the transformations via the cli?
-    ts = [normalize, flip]
+    if do_flip:
+        ts = [normalize, flip]
+    else:
+        ts = [normalize]
+
     dataloader = test_dataloader(1, transforms(*ts))
     images, labels = next(iter(dataloader))
     while labels[0].item() != label:
